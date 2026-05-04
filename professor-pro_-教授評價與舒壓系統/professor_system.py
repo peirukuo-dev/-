@@ -17,7 +17,7 @@ professors_db = {
     },
     "張志強": {
         "ratings": [5, 5, 4],
-        "comments": ["幽默風趣", "推推"],
+        "comments": ["幽默風趣", "大推推"],
         "beaten_count": 0
     }
 }
