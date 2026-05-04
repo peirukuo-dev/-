@@ -10,7 +10,9 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "server": "cd server && npm run dev",
-    "start": "concurrently \"npm run server\" \"npm run dev\""
+    "start": "concurrently \"npm run server\" \"npm run dev\"",
+    "start:prod": "node server/server.js",
+    "build:prod": "npm run build"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

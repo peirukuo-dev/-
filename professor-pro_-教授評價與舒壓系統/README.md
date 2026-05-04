@@ -18,3 +18,15 @@ View your app in AI Studio: https://ai.studio/apps/790a2da2-139d-4527-a53a-84b4b
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Deploy to Public Domain
+
+1. Build the frontend:
+   `npm run build`
+2. Start the production server:
+   `npm run start:prod`
+3. Or build and run in a Docker container:
+   `docker build -t professor-pro .`
+   `docker run -p 8080:8080 professor-pro`
+
+The app will then be available on the public host and the backend API will serve both `/api/*` and the frontend static site from the same origin.
