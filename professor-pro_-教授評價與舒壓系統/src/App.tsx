@@ -16,6 +16,7 @@ import {
   BookOpen, 
   Trophy 
 } from 'lucide-react';
+import { api, Professor, Comment } from './api';
 
 // --- Types ---
 interface Metrics {
@@ -25,128 +26,13 @@ interface Metrics {
   knowledge: number;  // 知識度
 }
 
-interface Comment {
-  id: string;
-  text: string;
-  author: string;
-  courseName: string; // Added courseName
-  date: string;
-  metrics: Metrics;
-}
-
-interface Professor {
-  id: string;
-  name: string;
-  department: string;
-  courses: string[]; 
-  relatedProfessors: string[]; 
-  searchCount: number; 
-  avgMetrics: Metrics;
-  comments: Comment[];
-  beatenCount: number;
-  photoUrl: string;
-  photoHitUrl: string;
-}
-
-// --- Initial Data ---
-const INITIAL_PROFESSORS: Professor[] = [
-  {
-    id: '1',
-    name: '王小明',
-    department: '資訊工程學系',
-    courses: ['資料結構', '演算法', '作業系統'],
-    relatedProfessors: ['2', '5'],
-    searchCount: 150,
-    avgMetrics: { score: 4.5, sweety: 4.8, coolness: 3.5, knowledge: 4.2 },
-    beatenCount: 12,
-    photoUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?q=80&w=400&h=300&auto=format&fit=crop',
-    photoHitUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?q=80&w=400&h=300&auto=format&fit=crop',
-    comments: [
-      { 
-        id: 'c1', text: '老師教得很清楚，大推！', author: '資工二', courseName: '資料結構', date: '2024-03-20',
-        metrics: { score: 5, sweety: 5, coolness: 4, knowledge: 5 }
-      },
-    ]
-  },
-  {
-    id: '2',
-    name: '李大華',
-    department: '電機工程學系',
-    courses: ['電路學', '電子學', '訊號與系統'],
-    relatedProfessors: ['1', '3'],
-    searchCount: 200,
-    avgMetrics: { score: 2.2, sweety: 1.5, coolness: 1.2, knowledge: 3.8 },
-    beatenCount: 85,
-    photoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=400&h=300&auto=format&fit=crop',
-    photoHitUrl: 'https://images.unsplash.com/photo-1555952517-2e8e729e0b44?q=80&w=400&h=300&auto=format&fit=crop',
-    comments: [
-      { 
-        id: 'c3', text: '考試超難... 建議要有心理準備。', author: '電機三', courseName: '電子學', date: '2024-05-10',
-        metrics: { score: 2, sweety: 1, coolness: 1, knowledge: 4 }
-      },
-    ]
-  },
-  {
-    id: '3',
-    name: '張志強',
-    department: '心理學系',
-    courses: ['心理學導論', '社會心理學', '認知心理學'],
-    relatedProfessors: ['4', '5'],
-    searchCount: 120,
-    avgMetrics: { score: 4.8, sweety: 4.2, coolness: 4.9, knowledge: 4.0 },
-    beatenCount: 5,
-    photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&h=300&auto=format&fit=crop',
-    photoHitUrl: 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?q=80&w=400&h=300&auto=format&fit=crop',
-    comments: [
-      { 
-        id: 'c5', text: '幽默風趣，課堂氣氛很好。', author: '心理一', courseName: '心理學導論', date: '2024-02-14',
-        metrics: { score: 5, sweety: 4, coolness: 5, knowledge: 4 }
-      },
-    ]
-  },
-  {
-    id: '4',
-    name: '林美雲',
-    department: '外國語文學系',
-    courses: ['英語讀寫', '語言學概論', '英美文學'],
-    relatedProfessors: ['3', '5'],
-    searchCount: 180,
-    avgMetrics: { score: 4.0, sweety: 4.5, coolness: 4.0, knowledge: 4.5 },
-    beatenCount: 18,
-    photoUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=400&h=300&auto=format&fit=crop',
-    photoHitUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&h=300&auto=format&fit=crop',
-    comments: [
-      { 
-        id: 'c6', text: '老師發音很美，上課很充實。', author: '外文四', courseName: '英美文學', date: '2024-04-20',
-        metrics: { score: 4, sweety: 5, coolness: 4, knowledge: 5 }
-      },
-    ]
-  },
-  {
-    id: '5',
-    name: '周杰',
-    department: '音樂學系',
-    courses: ['樂理', '古典音樂史', '鋼琴演奏'],
-    relatedProfessors: ['1', '4'],
-    searchCount: 90,
-    avgMetrics: { score: 3.5, sweety: 3.0, coolness: 3.0, knowledge: 4.5 },
-    beatenCount: 42,
-    photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=400&h=300&auto=format&fit=crop',
-    photoHitUrl: 'https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?q=80&w=400&h=300&auto=format&fit=crop',
-    comments: []
-  }
-];
-
 type ViewState = 'search' | 'gallery' | 'detail' | 'stress';
 
 type ScoreLevel = 'all' | 'high' | 'mid' | 'low';
 
 export default function App() {
   const [view, setView] = useState<ViewState>('search');
-  const [professors, setProfessors] = useState<Professor[]>(() => {
-    const saved = localStorage.getItem('professors');
-    return saved ? JSON.parse(saved) : INITIAL_PROFESSORS;
-  });
+  const [professors, setProfessors] = useState<Professor[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [galleryDepartment, setGalleryDepartment] = useState('all');
   const [gallerySurname, setGallerySurname] = useState('');
@@ -161,8 +47,8 @@ export default function App() {
   const [hitEffects, setHitEffects] = useState<{ id: number; x: number; y: number }[]>([]);
 
   useEffect(() => {
-    localStorage.setItem('professors', JSON.stringify(professors));
-  }, [professors]);
+    api.getProfessors().then(setProfessors);
+  }, []);
 
   const selectedProfessor = useMemo(() => 
     professors.find(p => p.id === selectedId), [professors, selectedId]);
@@ -199,44 +85,33 @@ export default function App() {
       });
   }, [professors, galleryDepartment, gallerySurname, galleryScoreLevel, gallerySort]);
 
-  const handleSelectProfessor = (id: string) => {
+  const handleSelectProfessor = async (id: string) => {
     setSelectedId(id);
-    setProfessors(prev => prev.map(p => p.id === id ? { ...p, searchCount: p.searchCount + 1 } : p));
+    await api.incrementSearch(id);
+    // Refresh professors data
+    const updatedProfessors = await api.getProfessors();
+    setProfessors(updatedProfessors);
     setView('detail');
     setSearchTerm('');
   };
 
-  const handleRate = (id: string, metrics: Metrics, commentText: string, courseName: string) => {
-    setProfessors(prev => prev.map(p => {
-      if (p.id === id) {
-        const newComments: Comment[] = [
-          ...p.comments,
-          { 
-            id: Math.random().toString(36).substr(2, 9), 
-            text: commentText, 
-            author: '熱心同學', 
-            courseName,
-            date: new Date().toISOString().split('T')[0],
-            metrics
-          }
-        ];
-        const count = newComments.length;
-        const newAvg = {
-          score: Number((newComments.reduce((sum, c) => sum + c.metrics.score, 0) / count).toFixed(1)),
-          sweety: Number((newComments.reduce((sum, c) => sum + c.metrics.sweety, 0) / count).toFixed(1)),
-          coolness: Number((newComments.reduce((sum, c) => sum + c.metrics.coolness, 0) / count).toFixed(1)),
-          knowledge: Number((newComments.reduce((sum, c) => sum + c.metrics.knowledge, 0) / count).toFixed(1)),
-        };
-        return { ...p, comments: newComments, avgMetrics: newAvg };
-      }
-      return p;
-    }));
+  const handleRate = async (id: string, metrics: Metrics, commentText: string, courseName: string) => {
+    const newComment = {
+      text: commentText,
+      author: '熱心同學',
+      courseName,
+      date: new Date().toISOString().split('T')[0],
+      metrics
+    };
+    await api.addComment(id, newComment);
+    // Refresh professors data
+    const updatedProfessors = await api.getProfessors();
+    setProfessors(updatedProfessors);
     setIsRatingModalOpen(false);
   };
 
-  const handleAddProfessor = (name: string, department: string, courses: string[], photoUrl?: string) => {
-    const newProfessor: Professor = {
-      id: Math.random().toString(36).substr(2, 9),
+  const handleAddProfessor = async (name: string, department: string, courses: string[], photoUrl?: string) => {
+    const newProfessor = {
       name,
       department,
       courses,
@@ -248,36 +123,37 @@ export default function App() {
       photoUrl: photoUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&h=300&auto=format&fit=crop',
       photoHitUrl: 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?q=80&w=400&h=300&auto=format&fit=crop'
     };
-    setProfessors(prev => [...prev, newProfessor]);
+    const addedProfessor = await api.addProfessor(newProfessor);
+    setProfessors(prev => [...prev, addedProfessor]);
     setIsAddProfessorModalOpen(false);
   };
 
-  const handleEditProfessor = (id: string, name: string, department: string, courses: string[], photoUrl?: string) => {
-    setProfessors(prev => prev.map(p => 
-      p.id === id ? { 
-        ...p, 
-        name, 
-        department, 
-        courses,
-        photoUrl: photoUrl || p.photoUrl,
-        photoHitUrl: photoUrl ? 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?q=80&w=400&h=300&auto=format&fit=crop' : p.photoHitUrl
-      } : p
-    ));
+  const handleEditProfessor = async (id: string, name: string, department: string, courses: string[], photoUrl?: string) => {
+    const updates = {
+      name,
+      department,
+      courses,
+      photoUrl: photoUrl || undefined,
+      photoHitUrl: photoUrl ? 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?q=80&w=400&h=300&auto=format&fit=crop' : undefined
+    };
+    const updatedProfessor = await api.updateProfessor(id, updates);
+    setProfessors(prev => prev.map(p => p.id === id ? updatedProfessor : p));
     setIsEditProfessorModalOpen(false);
   };
 
-  const handleThrowPie = (e: React.MouseEvent) => {
+  const handleThrowPie = async (e: React.MouseEvent) => {
     if (!selectedId) return;
     setIsHit(true);
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     setHitEffects(prev => [...prev, { id: Date.now(), x, y }]);
-    setProfessors(prev => prev.map(p => 
-      p.id === selectedId ? { ...p, beatenCount: p.beatenCount + 1 } : p
-    ));
-    
+    await api.incrementBeaten(selectedId);
+    // Refresh professors data
+    const updatedProfessors = await api.getProfessors();
+    setProfessors(updatedProfessors);
+
     setTimeout(() => setIsHit(false), 200);
     setTimeout(() => {
       setHitEffects(prev => prev.filter(p => Date.now() - p.id < 1000));
