@@ -41,7 +41,7 @@ def search_professor():
     if name in professors_db:
         return name
     else:
-        print("❌ 找不到這位教授，請確認名字是否正確。")
+        print("❌ 找不到這個教授，請確認名字是否正確。")
         return None
 
 def show_info(name):
