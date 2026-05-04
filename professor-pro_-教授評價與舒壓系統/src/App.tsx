@@ -145,6 +145,8 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [isAddProfessorModalOpen, setIsAddProfessorModalOpen] = useState(false);
+  const [isEditProfessorModalOpen, setIsEditProfessorModalOpen] = useState(false);
   
   const [isHit, setIsHit] = useState(false);
   const [hitEffects, setHitEffects] = useState<{ id: number; x: number; y: number }[]>([]);
@@ -195,6 +197,38 @@ export default function App() {
       return p;
     }));
     setIsRatingModalOpen(false);
+  };
+
+  const handleAddProfessor = (name: string, department: string, courses: string[], photoUrl?: string) => {
+    const newProfessor: Professor = {
+      id: Math.random().toString(36).substr(2, 9),
+      name,
+      department,
+      courses,
+      relatedProfessors: [], // 可以之後添加邏輯來推薦相關教授
+      searchCount: 0,
+      avgMetrics: { score: 0, sweety: 0, coolness: 0, knowledge: 0 },
+      comments: [],
+      beatenCount: 0,
+      photoUrl: photoUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&h=300&auto=format&fit=crop',
+      photoHitUrl: 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?q=80&w=400&h=300&auto=format&fit=crop'
+    };
+    setProfessors(prev => [...prev, newProfessor]);
+    setIsAddProfessorModalOpen(false);
+  };
+
+  const handleEditProfessor = (id: string, name: string, department: string, courses: string[], photoUrl?: string) => {
+    setProfessors(prev => prev.map(p => 
+      p.id === id ? { 
+        ...p, 
+        name, 
+        department, 
+        courses,
+        photoUrl: photoUrl || p.photoUrl,
+        photoHitUrl: photoUrl ? 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?q=80&w=400&h=300&auto=format&fit=crop' : p.photoHitUrl
+      } : p
+    ));
+    setIsEditProfessorModalOpen(false);
   };
 
   const handleThrowPie = (e: React.MouseEvent) => {
@@ -310,6 +344,14 @@ export default function App() {
                       </motion.button>
                     ))}
                   </div>
+                  <div className="pt-4">
+                    <button 
+                      onClick={() => setIsAddProfessorModalOpen(true)}
+                      className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-sm tracking-wide hover:bg-slate-800 transition-all shadow-lg active:scale-95 flex items-center gap-2 mx-auto"
+                    >
+                      <Plus size={16} /> 新增教授檔案
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -369,12 +411,20 @@ export default function App() {
                       <h4 className="text-2xl font-bold text-slate-900">同學留言</h4>
                       <p className="text-slate-400 text-sm font-medium">共有 {selectedProfessor.comments.length} 則真實分享</p>
                     </div>
-                    <button 
-                      onClick={() => setIsRatingModalOpen(true)}
-                      className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-sm tracking-wide hover:bg-slate-800 transition-all shadow-lg active:scale-95"
-                    >
-                      分享我的體驗
-                    </button>
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={() => setIsEditProfessorModalOpen(true)}
+                        className="bg-slate-100 text-slate-700 px-4 py-3 rounded-xl font-bold text-sm tracking-wide hover:bg-slate-200 transition-all shadow-sm active:scale-95 flex items-center gap-2"
+                      >
+                        <User size={16} /> 編輯資料
+                      </button>
+                      <button 
+                        onClick={() => setIsRatingModalOpen(true)}
+                        className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-sm tracking-wide hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+                      >
+                        分享我的體驗
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-6">
@@ -638,6 +688,200 @@ export default function App() {
                     className="flex-[2] bg-slate-900 text-white py-4 rounded-xl font-bold text-sm tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20 active:scale-95"
                   >
                     提交評價 ➔
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Add Professor Modal */}
+      <AnimatePresence>
+        {isAddProfessorModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/10 backdrop-blur-sm"
+              onClick={() => setIsAddProfessorModalOpen(false)}
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative bg-white rounded-[2.5rem] border border-slate-100 w-full max-w-xl p-8 md:p-12 shadow-2xl"
+            >
+              <div className="flex justify-between items-start mb-8">
+                <div className="space-y-1">
+                  <h3 className="text-3xl font-bold text-slate-900">新增教授檔案</h3>
+                  <p className="text-slate-400 font-medium">為資料庫添加新教授，讓更多同學受益。</p>
+                </div>
+                <button onClick={() => setIsAddProfessorModalOpen(false)} className="text-slate-300 hover:text-slate-900 transition-colors text-2xl">×</button>
+              </div>
+
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const name = formData.get('name') as string;
+                const department = formData.get('department') as string;
+                const coursesString = formData.get('courses') as string;
+                const courses = coursesString.split(',').map(c => c.trim()).filter(c => c);
+                const photoUrl = formData.get('photoUrl') as string || undefined;
+                handleAddProfessor(name, department, courses, photoUrl);
+              }} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">教授姓名</label>
+                  <input 
+                    name="name"
+                    type="text"
+                    required
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:bg-white focus:border-babyblue outline-none transition-all"
+                    placeholder="例如：王小明"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">系所名稱</label>
+                  <input 
+                    name="department"
+                    type="text"
+                    required
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:bg-white focus:border-babyblue outline-none transition-all"
+                    placeholder="例如：資訊工程學系"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">開課名稱（用逗號分隔）</label>
+                  <input 
+                    name="courses"
+                    type="text"
+                    required
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:bg-white focus:border-babyblue outline-none transition-all"
+                    placeholder="例如：資料結構,演算法,作業系統"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">照片網址（選填）</label>
+                  <input 
+                    name="photoUrl"
+                    type="url"
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:bg-white focus:border-babyblue outline-none transition-all"
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <button 
+                    type="button"
+                    onClick={() => setIsAddProfessorModalOpen(false)}
+                    className="flex-1 py-4 font-bold text-sm text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-[2] bg-slate-900 text-white py-4 rounded-xl font-bold text-sm tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20 active:scale-95"
+                  >
+                    新增教授 ➔
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Professor Modal */}
+      <AnimatePresence>
+        {isEditProfessorModalOpen && selectedProfessor && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/10 backdrop-blur-sm"
+              onClick={() => setIsEditProfessorModalOpen(false)}
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative bg-white rounded-[2.5rem] border border-slate-100 w-full max-w-xl p-8 md:p-12 shadow-2xl"
+            >
+              <div className="flex justify-between items-start mb-8">
+                <div className="space-y-1">
+                  <h3 className="text-3xl font-bold text-slate-900">編輯教授資料</h3>
+                  <p className="text-slate-400 font-medium">更新教授的基本資訊，保持資料庫的準確性。</p>
+                </div>
+                <button onClick={() => setIsEditProfessorModalOpen(false)} className="text-slate-300 hover:text-slate-900 transition-colors text-2xl">×</button>
+              </div>
+
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const name = formData.get('name') as string;
+                const department = formData.get('department') as string;
+                const coursesString = formData.get('courses') as string;
+                const courses = coursesString.split(',').map(c => c.trim()).filter(c => c);
+                const photoUrl = formData.get('photoUrl') as string || undefined;
+                handleEditProfessor(selectedProfessor.id, name, department, courses, photoUrl);
+              }} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">教授姓名</label>
+                  <input 
+                    name="name"
+                    type="text"
+                    required
+                    defaultValue={selectedProfessor.name}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:bg-white focus:border-babyblue outline-none transition-all"
+                    placeholder="例如：王小明"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">系所名稱</label>
+                  <input 
+                    name="department"
+                    type="text"
+                    required
+                    defaultValue={selectedProfessor.department}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:bg-white focus:border-babyblue outline-none transition-all"
+                    placeholder="例如：資訊工程學系"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">開課名稱（用逗號分隔）</label>
+                  <input 
+                    name="courses"
+                    type="text"
+                    required
+                    defaultValue={selectedProfessor.courses.join(', ')}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:bg-white focus:border-babyblue outline-none transition-all"
+                    placeholder="例如：資料結構,演算法,作業系統"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">照片網址（選填）</label>
+                  <input 
+                    name="photoUrl"
+                    type="url"
+                    defaultValue={selectedProfessor.photoUrl}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:bg-white focus:border-babyblue outline-none transition-all"
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <button 
+                    type="button"
+                    onClick={() => setIsEditProfessorModalOpen(false)}
+                    className="flex-1 py-4 font-bold text-sm text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-[2] bg-slate-900 text-white py-4 rounded-xl font-bold text-sm tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20 active:scale-95"
+                  >
+                    更新資料 ➔
                   </button>
                 </div>
               </form>
