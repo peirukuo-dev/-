@@ -29,4 +29,10 @@ View your app in AI Studio: https://ai.studio/apps/790a2da2-139d-4527-a53a-84b4b
    `docker build -t professor-pro .`
    `docker run -p 8080:8080 professor-pro`
 
-The app will then be available on the public host and the backend API will serve both `/api/*` and the frontend static site from the same origin.
+If deploying to a public host, make sure the host exposes the configured `PORT` environment variable. The production server serves both `/api/*` and the frontend app from the same origin, so no separate frontend hosting is required.
+
+### Notes
+
+- Use `npm install` once before deploying.
+- For a cloud provider, set `PORT` to the assigned port if needed.
+- If you want, I can繼續幫你把這個部署到具體的雲端平台（例如 Render、Railway、Vercel + serverless 或 Docker 主機）。
