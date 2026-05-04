@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, 
@@ -137,12 +137,21 @@ const INITIAL_PROFESSORS: Professor[] = [
   }
 ];
 
-type ViewState = 'search' | 'detail' | 'stress';
+type ViewState = 'search' | 'gallery' | 'detail' | 'stress';
+
+type ScoreLevel = 'all' | 'high' | 'mid' | 'low';
 
 export default function App() {
   const [view, setView] = useState<ViewState>('search');
-  const [professors, setProfessors] = useState<Professor[]>(INITIAL_PROFESSORS);
+  const [professors, setProfessors] = useState<Professor[]>(() => {
+    const saved = localStorage.getItem('professors');
+    return saved ? JSON.parse(saved) : INITIAL_PROFESSORS;
+  });
   const [searchTerm, setSearchTerm] = useState('');
+  const [galleryDepartment, setGalleryDepartment] = useState('all');
+  const [gallerySurname, setGallerySurname] = useState('');
+  const [galleryScoreLevel, setGalleryScoreLevel] = useState<ScoreLevel>('all');
+  const [gallerySort, setGallerySort] = useState<'name' | 'score' | 'search'>('name');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [isAddProfessorModalOpen, setIsAddProfessorModalOpen] = useState(false);
@@ -150,6 +159,10 @@ export default function App() {
   
   const [isHit, setIsHit] = useState(false);
   const [hitEffects, setHitEffects] = useState<{ id: number; x: number; y: number }[]>([]);
+
+  useEffect(() => {
+    localStorage.setItem('professors', JSON.stringify(professors));
+  }, [professors]);
 
   const selectedProfessor = useMemo(() => 
     professors.find(p => p.id === selectedId), [professors, selectedId]);
@@ -163,6 +176,28 @@ export default function App() {
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       p.department.toLowerCase().includes(searchTerm.toLowerCase())
     ), [professors, searchTerm]);
+
+  const galleryDepartments = useMemo(
+    () => ['all', ...Array.from(new Set(professors.map(p => p.department)))],
+    [professors]
+  );
+
+  const galleryProfessors = useMemo(() => {
+    return professors
+      .filter(p => {
+        if (galleryDepartment !== 'all' && p.department !== galleryDepartment) return false;
+        if (gallerySurname && !p.name.startsWith(gallerySurname)) return false;
+        if (galleryScoreLevel === 'high' && p.avgMetrics.score < 4) return false;
+        if (galleryScoreLevel === 'mid' && (p.avgMetrics.score < 3 || p.avgMetrics.score >= 4)) return false;
+        if (galleryScoreLevel === 'low' && p.avgMetrics.score >= 3) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (gallerySort === 'name') return a.name.localeCompare(b.name, 'zh-Hant');
+        if (gallerySort === 'score') return b.avgMetrics.score - a.avgMetrics.score;
+        return b.searchCount - a.searchCount;
+      });
+  }, [professors, galleryDepartment, gallerySurname, galleryScoreLevel, gallerySort]);
 
   const handleSelectProfessor = (id: string) => {
     setSelectedId(id);
@@ -261,11 +296,21 @@ export default function App() {
             <div className="bg-babyblue p-2 rounded-xl text-white shadow-sm transition-transform group-hover:scale-110">
               <User size={22} />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Prof Pro</h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">叫獸情報局</h1>
           </div>
           <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-2">
+              <button
+                onClick={() => setView('search')}
+                className={`px-3 py-2 rounded-full text-xs font-semibold transition ${view === 'search' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+              >探索</button>
+              <button
+                onClick={() => setView('gallery')}
+                className={`px-3 py-2 rounded-full text-xs font-semibold transition ${view === 'gallery' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+              >資料庫</button>
+            </div>
              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-              {view === 'search' ? '探索課程' : view === 'detail' ? '評價詳情' : '教授菜菜撈撈'}
+              {view === 'search' ? '探索課程' : view === 'gallery' ? '教授與牠們的產地' : view === 'detail' ? '評價詳情' : '教授菜菜撈撈'}
              </span>
           </div>
         </div>
@@ -283,10 +328,10 @@ export default function App() {
             >
               <div className="text-center space-y-4">
                 <h2 className="text-4xl md:text-6xl font-bold text-slate-900 tracking-tight">
-                  尋找你的 <span className="text-blue-400">理想導師</span>
+                  教授的 <span className="text-blue-400">真實檔案</span>
                 </h2>
                 <p className="text-slate-500 font-medium text-lg max-w-xl mx-auto leading-relaxed">
-                  匿名分享真實上課體驗，為下一位同學點亮前行的明燈。
+                  蒐集最狂授課傳說，讓你在校園裡先知先覺。
                 </p>
               </div>
 
@@ -353,6 +398,122 @@ export default function App() {
                     </button>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          )}
+
+          {view === 'gallery' && (
+            <motion.div
+              key="gallery"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-10"
+            >
+              <div className="grid gap-4 md:grid-cols-[1fr_260px] items-start">
+                <div className="space-y-5">
+                  <div>
+                    <h2 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight">教授與牠們的產地</h2>
+                    <p className="text-slate-500 font-medium text-lg max-w-2xl leading-relaxed mt-3">
+                      以系所、姓氏與分數等級篩選資料庫，快速找到你想要的名單。
+                    </p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <select
+                      value={galleryDepartment}
+                      onChange={(e) => setGalleryDepartment(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-4 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-babyblue/20 focus:border-babyblue transition-all"
+                    >
+                      {galleryDepartments.map(department => (
+                        <option key={department} value={department}>
+                          {department === 'all' ? '所有系所' : department}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={gallerySurname}
+                      onChange={(e) => setGallerySurname(e.target.value)}
+                      placeholder="姓氏搜尋，例如：王"
+                      className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-4 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-babyblue/20 focus:border-babyblue transition-all"
+                    />
+                    <select
+                      value={galleryScoreLevel}
+                      onChange={(e) => setGalleryScoreLevel(e.target.value as ScoreLevel)}
+                      className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-4 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-babyblue/20 focus:border-babyblue transition-all"
+                    >
+                      <option value="all">所有分數</option>
+                      <option value="high">高分 ≥ 4</option>
+                      <option value="mid">中等 3–4</option>
+                      <option value="low">低分 {'<'} 3</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex-1 grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setGallerySort('name')}
+                        className={`py-3 rounded-2xl font-semibold text-sm transition ${gallerySort === 'name' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                      >姓名排序</button>
+                      <button
+                        onClick={() => setGallerySort('score')}
+                        className={`py-3 rounded-2xl font-semibold text-sm transition ${gallerySort === 'score' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                      >評分排序</button>
+                    </div>
+                    <button
+                      onClick={() => setGallerySort('search')}
+                      className={`w-full sm:w-auto py-3 rounded-2xl font-semibold text-sm transition ${gallerySort === 'search' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                    >人氣排序</button>
+                  </div>
+                </div>
+
+                <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+                  <div className="text-sm font-bold uppercase tracking-[0.24em] text-slate-400 mb-4">資料庫說明</div>
+                  <div className="space-y-3 text-sm text-slate-500">
+                    <p>使用左側篩選器查看教授名單。</p>
+                    <p>姓名篩選會依照「姓氏開頭」過濾。</p>
+                    <p>分數等級可快速找到評價高、中、低教授。</p>
+                    <p>點選卡片即可進入該教授的詳細評價頁面。</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                {galleryProfessors.length === 0 ? (
+                  <div className="col-span-full rounded-[2rem] bg-white border border-slate-100 p-10 text-center text-slate-400 shadow-sm">
+                    找不到符合條件的教授，請調整篩選條件。
+                  </div>
+                ) : (
+                  galleryProfessors.map((prof) => (
+                    <motion.div
+                      key={prof.id}
+                      whileHover={{ y: -4 }}
+                      className="group rounded-[2rem] border border-slate-100 bg-white shadow-sm overflow-hidden transition-all"
+                    >
+                      <div className="relative overflow-hidden">
+                        <img src={prof.photoUrl} alt={prof.name} className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/80 to-transparent p-4">
+                          <p className="text-xs uppercase tracking-[0.24em] text-slate-200">{prof.department}</p>
+                          <h3 className="text-xl font-bold text-white mt-2">{prof.name}</h3>
+                        </div>
+                      </div>
+                      <div className="p-6 space-y-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-babyblue-light px-3 py-1 text-xs font-bold text-blue-600">{prof.avgMetrics.score.toFixed(1)} 分</span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">{prof.comments.length} 則評價</span>
+                        </div>
+                        <p className="text-sm leading-relaxed text-slate-600">開課：{prof.courses.slice(0, 3).join('、')}</p>
+                        <div className="flex flex-wrap gap-2 text-xs text-slate-400">
+                          <span className="px-3 py-2 rounded-2xl bg-slate-50">被搜尋 {prof.searchCount} 次</span>
+                          <span className="px-3 py-2 rounded-2xl bg-slate-50">被扁 {prof.beatenCount} 次</span>
+                        </div>
+                        <button
+                          onClick={() => handleSelectProfessor(prof.id)}
+                          className="w-full bg-slate-900 text-white rounded-2xl py-3 text-sm font-semibold hover:bg-slate-800 transition-all"
+                        >查看詳情</button>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
               </div>
             </motion.div>
           )}
@@ -893,9 +1054,9 @@ export default function App() {
       <footer className="py-20 bg-white border-t border-slate-100 flex items-center justify-center">
         <div className="max-w-5xl mx-auto px-6 w-full flex flex-col md:flex-row justify-between items-center gap-10">
           <div className="space-y-2 text-center md:text-left">
-            <h4 className="text-lg font-bold text-slate-900">Prof Pro</h4>
+            <h4 className="text-lg font-bold text-slate-900">叫獸情報局</h4>
             <p className="text-xs font-medium text-slate-300 max-w-sm leading-relaxed">
-              本平台旨在促進校園透明資訊交流與情緒舒緩。使用者應對其言論負責，維護健康網路環境。
+              本平台蒐集校園教授情報與評價，讓你在選課時先聲奪人。使用者應對其言論負責，維護健康網路環境。
             </p>
           </div>
           <div className="flex gap-4">
